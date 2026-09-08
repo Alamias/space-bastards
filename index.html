@@ -113,8 +113,8 @@
   .board{display:flex;flex-direction:column;margin-top:8px;}
   .row{
     position:relative;
-    display:flex;align-items:center;gap:18px;flex-wrap:wrap;
-    padding:16px 8px;border-top:1px solid var(--line);
+    display:flex;align-items:center;gap:22px;flex-wrap:wrap;
+    padding:20px 10px;border-top:1px solid var(--line);
   }
   .board .row:last-of-type{border-bottom:1px solid var(--line);}
 
@@ -135,41 +135,43 @@
   .portrait.editable:hover .plus, .portrait.editable:active .plus{opacity:1;}
   .portrait input{display:none;}
 
-  .rowmain{flex:1 1 180px;min-width:180px;display:flex;flex-direction:column;gap:9px;}
+  .rowmain{
+    flex:1 1 320px;min-width:220px;display:flex;align-items:center;
+    gap:28px;flex-wrap:wrap;
+  }
 
   .name{
+    flex:0 0 auto;min-width:140px;max-width:280px;
     font-family:'Anton',sans-serif;
     font-size:clamp(18px,2.8vw,27px);
     letter-spacing:.5px;
     text-transform:uppercase;
   }
   .nameinput{
+    flex:0 0 auto;
     background:transparent;border:none;border-bottom:1px solid var(--panel-edge);
     color:var(--ink);font-family:'Anton',sans-serif;font-size:20px;letter-spacing:.5px;
-    text-transform:uppercase;padding:2px 2px 5px;max-width:280px;width:100%;
+    text-transform:uppercase;padding:2px 2px 5px;max-width:260px;width:100%;
   }
   .nameinput:focus{outline:none;border-bottom-color:var(--yellow);}
 
-  .stats{display:flex;gap:26px;flex-wrap:wrap;}
-  .statcell{text-align:center;min-width:58px;}
-  .statcell label{display:block;font-family:'Anton',sans-serif;font-size:10px;letter-spacing:2px;color:var(--ink-dim);margin-bottom:5px;}
+  .stats{flex:1 1 260px;display:flex;justify-content:space-evenly;gap:20px;flex-wrap:wrap;}
+  .statcell{
+    text-align:center;min-width:64px;
+    background:none;border:none;padding:8px 10px;border-radius:10px;cursor:pointer;
+    -webkit-tap-highlight-color:transparent;touch-action:manipulation;user-select:none;
+    transition:background .12s, transform .08s;
+    font:inherit;color:inherit;
+  }
+  .statcell:hover{background:rgba(244,241,230,0.05);}
+  .statcell:active{transform:scale(.93);background:rgba(244,241,230,0.09);}
+  .statcell label{display:block;font-family:'Anton',sans-serif;font-size:10px;letter-spacing:2px;color:var(--ink-dim);margin-bottom:5px;pointer-events:none;}
 
   .tally{font-family:'Anton',sans-serif;font-size:clamp(16px,2.4vw,24px);letter-spacing:3px;}
   .tally.kills{color:var(--good);}
   .tally.deaths{color:var(--bad);}
   .tally.pts{color:var(--pts);}
   .tally.empty{color:var(--ink-dim);opacity:.5;letter-spacing:0;}
-
-  .stepper{display:flex;align-items:center;justify-content:center;gap:7px;}
-  .stepper button{
-    width:30px;height:30px;border-radius:7px;border:1px solid var(--panel-edge);
-    background:rgba(244,241,230,0.06);color:var(--ink);font-size:17px;cursor:pointer;line-height:1;
-  }
-  .stepper button:active{background:var(--yellow);color:#1a1200;}
-  .stepper .val{min-width:22px;font-family:'Anton',sans-serif;font-size:17px;}
-  .statcell.kills .val{color:var(--good);}
-  .statcell.deaths .val{color:var(--bad);}
-  .statcell.pts .val{color:var(--pts);}
 
   .delbtn{
     position:absolute;top:12px;right:6px;background:none;border:none;
@@ -259,6 +261,7 @@
   </div>
 
   <div class="divider"></div>
+  <p class="note">Tap a number to add one · press and hold (or right-click) to subtract one.</p>
 
   <div class="board" id="board"></div>
   <div class="addrow" id="addRow" style="display:none;">
@@ -343,7 +346,7 @@
   // ---------- State (localStorage only — fully standalone) ----------
   var LOCAL_KEY = 'space-bastards-scoreboard-v1';
   var state = {bastards: [], sessions: []};
-  var editMode = false;
+  var editMode = true;
 
   var SEED = [
     {name:'Boom Boom', kills:1, deaths:2, points:0},
@@ -456,30 +459,49 @@
           }
         });
       });
-      board.querySelectorAll('.stepper button').forEach(function(btn){
-        btn.addEventListener('click', function(){
-          var id = btn.getAttribute('data-id');
-          var field = btn.getAttribute('data-field');
-          var delta = parseInt(btn.getAttribute('data-delta'),10);
-          var b = state.bastards.find(function(x){return x.id===id;});
-          if(!b) return;
-          b[field] = Math.max(0, (b[field]||0)+delta);
-          save(); renderBoard();
-        });
-      });
     }
+
+    // Stat cells are always tappable — no need to be in Edit mode to score a game.
+    board.querySelectorAll('.statcell').forEach(function(cell){
+      var id = cell.getAttribute('data-id');
+      var field = cell.getAttribute('data-field');
+      var pressTimer = null;
+      var longPressFired = false;
+      function clearPress(){ if(pressTimer){ clearTimeout(pressTimer); pressTimer = null; } }
+      cell.addEventListener('pointerdown', function(){
+        longPressFired = false;
+        clearPress();
+        pressTimer = setTimeout(function(){
+          longPressFired = true;
+          bumpStat(id, field, -1);
+        }, 450);
+      });
+      ['pointerup','pointercancel','pointerleave'].forEach(function(evt){
+        cell.addEventListener(evt, clearPress);
+      });
+      cell.addEventListener('click', function(){
+        if(longPressFired){ longPressFired = false; return; }
+        bumpStat(id, field, 1);
+      });
+      cell.addEventListener('contextmenu', function(e){
+        e.preventDefault();
+        bumpStat(id, field, -1);
+      });
+    });
+  }
+
+  function bumpStat(id, field, delta){
+    var b = state.bastards.find(function(x){return x.id===id;});
+    if(!b) return;
+    b[field] = Math.max(0, (b[field]||0)+delta);
+    save();
+    renderBoard();
   }
 
   function statCell(field, label, val, id){
-    if(!editMode){
-      return '<div class="statcell '+field+'"><label>'+label+'</label>'+tallyHtml(val, field)+'</div>';
-    }
-    return '<div class="statcell '+field+'"><label>'+label+'</label>'+
-      '<div class="stepper">'+
-        '<button data-id="'+id+'" data-field="'+field+'" data-delta="-1">–</button>'+
-        '<span class="val">'+(val||0)+'</span>'+
-        '<button data-id="'+id+'" data-field="'+field+'" data-delta="1">+</button>'+
-      '</div></div>';
+    return '<button type="button" class="statcell '+field+'" data-id="'+id+'" data-field="'+field+'">'+
+      '<label>'+label+'</label>'+tallyHtml(val, field)+
+    '</button>';
   }
 
   function handlePhoto(file, id){
@@ -597,6 +619,10 @@
   });
 
   // ---------- Init ----------
+  var editToggleEl = document.getElementById('editToggle');
+  editToggleEl.classList.toggle('on', editMode);
+  document.getElementById('editLabel').textContent = editMode ? 'Editing' : 'Edit';
+
   load();
   renderAll();
 })();
