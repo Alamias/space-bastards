@@ -4,9 +4,10 @@ A self-contained, single-file scoreboard for the Space Bastards tabletop game. N
 
 ## What it does
 
-- Tracks each bastard's **kills**, **deaths**, and cumulative **points** with big, TV-friendly tally-mark styling.
-- Flip on **Edit** to add/rename/remove bastards, snap or upload a mini photo, and bump stats with +/- steppers.
-- **Campaign** panel logs each finished game (name, date, per-bastard kills/deaths) — tap "End Game & Start New One" to archive the current round and reset kills/deaths (points carry over).
+- Tracks each bastard's **kills**, **deaths**, and **points** with big, TV-friendly tally-mark styling. Tap any number to add one, press-and-hold (or right-click) to subtract one — no edit mode needed to keep score mid-game.
+- Reaching 3 kills gives a bastard a persistent "Winner" badge plus a one-time confetti/banner celebration.
+- Flip on **Edit** to add/rename/remove bastards and snap or upload a mini photo. Starts with an empty roster — add your own crew.
+- **Campaign** panel logs each finished game (name, date, per-bastard kills/deaths/points) — tap "End Game & Start New One" to archive the current round and reset kills, deaths, *and* points to zero for everyone.
 - Animated starfield/nebula background, comic-style logo.
 - All data lives in the browser's `localStorage` — nothing is sent anywhere. Use **Transfer Data** to copy a JSON snapshot between devices/browsers (there's no live sync between devices by design — see below).
 

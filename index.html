@@ -257,6 +257,7 @@
   .session-entry b{color:var(--ink);font-weight:500;}
   .session-entry .sk{color:var(--good);}
   .session-entry .sd{color:var(--bad);margin-left:8px;}
+  .session-entry .sp{color:var(--pts);margin-left:8px;}
   .note{font-size:12px;color:var(--ink-dim);text-align:center;margin-top:16px;line-height:1.6;}
 
   /* Transfer modal */
@@ -320,7 +321,7 @@
     <button id="addBtn">Add Bastard</button>
   </div>
 
-  <p class="note" id="editNote" style="display:none;">Tap a photo circle to add a mini pic. Points carry across games — kills &amp; deaths reset when you start a new game.</p>
+  <p class="note" id="editNote" style="display:none;">Tap a photo circle to add a mini pic. "End Game &amp; Start New One" resets kills, deaths, and points to zero for everyone and saves this game to Campaign History.</p>
 </div>
 
 <div class="overlay" id="overlay">
@@ -392,15 +393,6 @@
   var state = {bastards: [], sessions: []};
   var editMode = true;
 
-  var SEED = [
-    {name:'Boom Boom', kills:1, deaths:2, points:0},
-    {name:'Foxxy Brown', kills:1, deaths:1, points:0},
-    {name:'Robo-Bastard 9000', kills:0, deaths:1, points:1},
-    {name:'Undead Fred', kills:2, deaths:1, points:0},
-    {name:'P.M.', kills:0, deaths:3, points:0},
-    {name:'Gruff', kills:2, deaths:2, points:2}
-  ];
-
   function uid(){ return 'b' + Date.now().toString(36) + Math.random().toString(36).slice(2,7); }
 
   function load(){
@@ -413,8 +405,8 @@
         return;
       }
     }catch(e){}
-    // first run: seed with example roster
-    state.bastards = SEED.map(function(s){ return Object.assign({id: uid(), photo:null}, s); });
+    // first run: start with an empty roster
+    state.bastards = [];
     state.sessions = [];
     save();
   }
@@ -628,7 +620,7 @@
     el.innerHTML = sorted.map(function(s){
       var date = s.endedAt ? new Date(s.endedAt).toLocaleDateString(undefined,{month:'short',day:'numeric',year:'numeric'}) : '';
       var entries = (s.entries||[]).map(function(en){
-        return '<div class="session-entry"><b>'+escapeHtml(en.name)+'</b><span><span class="sk">'+(en.kills||0)+'K</span><span class="sd">'+(en.deaths||0)+'D</span></span></div>';
+        return '<div class="session-entry"><b>'+escapeHtml(en.name)+'</b><span><span class="sk">'+(en.kills||0)+'K</span><span class="sd">'+(en.deaths||0)+'D</span><span class="sp">'+(en.points||0)+'P</span></span></div>';
       }).join('');
       return '<div class="session"><div class="session-head"><span>'+escapeHtml(s.label||'Game')+'</span><span>'+date+'</span></div>'+entries+'</div>';
     }).join('');
@@ -641,11 +633,11 @@
   }
   function endGame(){
     if(!state.bastards.length){ alert('Add some bastards first.'); return; }
+    if(!confirm('End the game and reset kills, deaths, and points to zero for everyone?')) return;
     var label = prompt('Name this game (optional):', 'Game '+(state.sessions.length+1));
-    if(label===null) return;
-    var entries = state.bastards.map(function(b){ return {name:b.name, kills:b.kills||0, deaths:b.deaths||0}; });
-    state.sessions.push({label: label || ('Game '+(state.sessions.length+1)), endedAt: Date.now(), entries: entries});
-    state.bastards.forEach(function(b){ b.kills=0; b.deaths=0; });
+    var entries = state.bastards.map(function(b){ return {name:b.name, kills:b.kills||0, deaths:b.deaths||0, points:b.points||0}; });
+    state.sessions.push({label: (label && label.trim()) || ('Game '+(state.sessions.length+1)), endedAt: Date.now(), entries: entries});
+    state.bastards.forEach(function(b){ b.kills=0; b.deaths=0; b.points=0; });
     save(); renderAll();
   }
 
