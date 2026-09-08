@@ -78,6 +78,18 @@
   }
 
   /* Toolbar */
+  .howto{
+    margin:22px 0 4px;padding:16px 20px;
+    background:var(--field);border:1px solid var(--panel-edge);border-radius:12px;
+  }
+  .howto-head{
+    font-family:'Anton',sans-serif;letter-spacing:2px;font-size:13px;color:var(--yellow);
+    margin-bottom:8px;
+  }
+  .howto ul{margin:0;padding-left:20px;display:flex;flex-direction:column;gap:5px;}
+  .howto li{font-size:13px;color:var(--ink-dim);line-height:1.5;}
+  .howto li strong{color:var(--ink);font-weight:600;}
+
   .toolbar{
     display:flex;align-items:center;justify-content:center;gap:10px;flex-wrap:wrap;
     margin:22px 0 6px;
@@ -362,6 +374,17 @@
     <div class="sub">FROM OUTER SPACE</div>
   </div>
 
+  <div class="howto">
+    <div class="howto-head">How to Play</div>
+    <ul>
+      <li>Tap a Kills/Deaths/Points number to add one — press &amp; hold (or right-click) to subtract one.</li>
+      <li>Flip on <strong>Edit</strong> to rename bastards, add or remove them, and attach a mini photo.</li>
+      <li><strong>3 kills</strong> declares a winner and locks the whole board · <strong>3 deaths</strong> takes that bastard out and locks their row.</li>
+      <li>Open <strong>Campaign</strong> to end the game (resets everyone to zero) and see past games.</li>
+      <li><strong>Transfer Data</strong> copies your roster to another device · <strong>Clear All</strong> wipes everything for a fresh start.</li>
+    </ul>
+  </div>
+
   <div class="toolbar">
     <div class="switchbtn" id="editToggle"><span class="track"><span class="knob"></span></span><span id="editLabel">Edit</span></div>
     <button class="toolbtn" id="campaignBtn">Campaign</button>
@@ -378,7 +401,6 @@
   </div>
 
   <div class="divider"></div>
-  <p class="note">Tap a number to add one · press and hold (or right-click) to subtract one.</p>
 
   <div class="board" id="board"></div>
   <div class="addrow" id="addRow" style="display:none;">
