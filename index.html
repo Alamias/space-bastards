@@ -277,11 +277,12 @@
   }
   .statcell.locked:hover, .statcell.locked:active{background:none;transform:none;}
   .statcell label{display:block;font-family:'Anton',sans-serif;font-size:10px;letter-spacing:2px;color:var(--ink-dim);margin-bottom:5px;pointer-events:none;}
+  .statcell.points label{letter-spacing:.5px;max-width:110px;margin-left:auto;margin-right:auto;}
 
   .tally{font-family:'Anton',sans-serif;font-size:clamp(16px,2.4vw,24px);letter-spacing:3px;}
   .tally.kills{color:var(--good);}
   .tally.deaths{color:var(--bad);}
-  .tally.pts{color:var(--pts);}
+  .tally.points{color:var(--pts);}
   .tally.empty{color:var(--ink-dim);opacity:.5;letter-spacing:0;}
 
   .delbtn{
@@ -583,7 +584,7 @@
       var statsHtml = '<div class="stats">'+
         statCell('kills','KILLS',b.kills,b.id,locked)+
         statCell('deaths','DEATHS',b.deaths,b.id,locked)+
-        statCell('pts','POINTS',b.points,b.id,locked)+
+        statCell('points','BASTARD POINTS EARNED',b.points,b.id,locked)+
       '</div>';
 
       var delBtn = editMode ? '<button class="delbtn" data-id="'+b.id+'" title="Remove">🗑</button>' : '';
