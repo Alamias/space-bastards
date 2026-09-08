@@ -107,6 +107,8 @@
   }
   .toolbtn:hover{color:var(--ink);border-color:var(--line);}
   .toolbtn.active{color:var(--yellow);border-color:var(--yellow-dim);}
+  .toolbtn.danger{color:var(--bad);border-color:rgba(232,67,47,.35);}
+  .toolbtn.danger:hover{background:rgba(232,67,47,.14);border-color:var(--bad);color:#fff;}
 
   .divider{height:1px;background:linear-gradient(90deg,transparent,var(--line) 20%,var(--line) 80%,transparent);margin:18px 0 6px;}
 
@@ -354,6 +356,7 @@
     <div class="switchbtn" id="editToggle"><span class="track"><span class="knob"></span></span><span id="editLabel">Edit</span></div>
     <button class="toolbtn" id="campaignBtn">Campaign</button>
     <button class="toolbtn" id="transferBtn">Transfer Data</button>
+    <button class="toolbtn danger" id="clearAllBtn">Clear All</button>
   </div>
 
   <div class="campaign" id="campaign">
@@ -755,6 +758,14 @@
     this.classList.toggle('active');
   });
   document.getElementById('newGameBtn').addEventListener('click', endGame);
+
+  document.getElementById('clearAllBtn').addEventListener('click', function(){
+    if(!confirm('This permanently deletes every bastard and all campaign history on this device. This cannot be undone. Continue?')) return;
+    state.bastards = [];
+    state.sessions = [];
+    save();
+    renderAll();
+  });
 
   // Transfer modal
   var overlay = document.getElementById('overlay');
