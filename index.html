@@ -358,7 +358,16 @@
     background:none;border:1px solid var(--panel-edge);color:var(--ink);border-radius:8px;
     padding:9px 14px;font-size:13px;cursor:pointer;
   }
+  .modal button.act.danger{background:var(--bad);color:#fff;}
   .modal hr{border:none;border-top:1px solid var(--panel-edge);margin:18px 0;}
+  .dialog-modal{width:min(400px,100%);}
+  .dialog-modal h3{margin-bottom:10px;}
+  .dialog-input{
+    width:100%;background:var(--field);border:1px solid var(--panel-edge);border-radius:8px;
+    color:var(--ink);padding:10px 12px;font-family:'Rubik';font-size:14px;margin-top:4px;
+  }
+  .dialog-input:focus{outline:none;border-color:var(--yellow-dim);}
+  #dialogButtons{justify-content:flex-end;}
   .modal .close{float:right;background:none;border:none;color:var(--ink-dim);font-size:20px;cursor:pointer;}
 </style>
 </head>
@@ -428,6 +437,15 @@
       <button class="act" id="loadBtn">Load</button>
       <button class="ghost" id="cancelImport">Cancel</button>
     </div>
+  </div>
+</div>
+
+<div class="overlay" id="dialogOverlay">
+  <div class="modal dialog-modal">
+    <h3 id="dialogTitle"></h3>
+    <p id="dialogMessage"></p>
+    <input type="text" id="dialogInput" class="dialog-input" style="display:none;">
+    <div class="row2" id="dialogButtons"></div>
   </div>
 </div>
 
@@ -589,8 +607,9 @@
         });
       });
       board.querySelectorAll('.delbtn').forEach(function(btn){
-        btn.addEventListener('click', function(){
-          if(confirm('Remove this bastard from the roster?')){
+        btn.addEventListener('click', async function(){
+          var ok = await showConfirm('Remove this bastard from the roster?', {confirmText:'Remove', danger:true, title:'Remove bastard?'});
+          if(ok){
             state.bastards = state.bastards.filter(function(x){return x.id!==btn.getAttribute('data-id');});
             save(); renderBoard();
           }
@@ -762,10 +781,11 @@
     state.bastards.push({id: uid(), name: name, kills:0, deaths:0, points:0, photo:null});
     save(); renderBoard();
   }
-  function endGame(){
-    if(!state.bastards.length){ alert('Add some bastards first.'); return; }
-    if(!confirm('End the game and reset kills, deaths, and points to zero for everyone?')) return;
-    var label = prompt('Name this game (optional):', 'Game '+(state.sessions.length+1));
+  async function endGame(){
+    if(!state.bastards.length){ await showAlert('Add some bastards first.'); return; }
+    var ok = await showConfirm('End the game and reset kills, deaths, and points to zero for everyone?', {confirmText:'End Game', danger:true, title:'End this game?'});
+    if(!ok) return;
+    var label = await showPrompt('Name this game (optional):', 'Game '+(state.sessions.length+1));
     var entries = state.bastards.map(function(b){ return {name:b.name, kills:b.kills||0, deaths:b.deaths||0, points:b.points||0}; });
     state.sessions.push({label: (label && label.trim()) || ('Game '+(state.sessions.length+1)), endedAt: Date.now(), entries: entries});
     state.bastards.forEach(function(b){ b.kills=0; b.deaths=0; b.points=0; });
@@ -799,13 +819,104 @@
   });
   document.getElementById('newGameBtn').addEventListener('click', endGame);
 
-  document.getElementById('clearAllBtn').addEventListener('click', function(){
-    if(!confirm('This permanently deletes every bastard and all campaign history on this device. This cannot be undone. Continue?')) return;
+  document.getElementById('clearAllBtn').addEventListener('click', async function(){
+    var ok = await showConfirm('This permanently deletes every bastard and all campaign history on this device. This cannot be undone.', {confirmText:'Clear Everything', danger:true, title:'Clear everything?'});
+    if(!ok) return;
     state.bastards = [];
     state.sessions = [];
     save();
     renderAll();
   });
+
+  // ---------- In-game dialogs (replaces window.alert/confirm/prompt) ----------
+  var dialogOverlay = document.getElementById('dialogOverlay');
+  var dialogTitleEl = document.getElementById('dialogTitle');
+  var dialogMessageEl = document.getElementById('dialogMessage');
+  var dialogInputEl = document.getElementById('dialogInput');
+  var dialogButtonsEl = document.getElementById('dialogButtons');
+  var dialogDismiss = null;
+
+  function openDialog(){ dialogOverlay.classList.add('open'); }
+  function closeDialog(){ dialogOverlay.classList.remove('open'); dialogInputEl.onkeydown = null; }
+
+  dialogOverlay.addEventListener('click', function(e){
+    if(e.target===dialogOverlay && dialogDismiss) dialogDismiss();
+  });
+  document.addEventListener('keydown', function(e){
+    if(e.key==='Escape' && dialogOverlay.classList.contains('open') && dialogDismiss) dialogDismiss();
+  });
+
+  function showAlert(message, opts){
+    opts = opts || {};
+    return new Promise(function(resolve){
+      dialogTitleEl.textContent = opts.title || 'Heads up';
+      dialogMessageEl.textContent = message;
+      dialogInputEl.style.display = 'none';
+      dialogButtonsEl.innerHTML = '';
+      var okBtn = document.createElement('button');
+      okBtn.className = 'act';
+      okBtn.textContent = opts.okText || 'OK';
+      function finish(){ closeDialog(); resolve(); }
+      okBtn.onclick = finish;
+      dialogDismiss = finish;
+      dialogButtonsEl.appendChild(okBtn);
+      openDialog();
+      okBtn.focus();
+    });
+  }
+
+  function showConfirm(message, opts){
+    opts = opts || {};
+    return new Promise(function(resolve){
+      dialogTitleEl.textContent = opts.title || 'Are you sure?';
+      dialogMessageEl.textContent = message;
+      dialogInputEl.style.display = 'none';
+      dialogButtonsEl.innerHTML = '';
+      var cancelBtn = document.createElement('button');
+      cancelBtn.className = 'ghost';
+      cancelBtn.textContent = opts.cancelText || 'Cancel';
+      var okBtn = document.createElement('button');
+      okBtn.className = opts.danger ? 'act danger' : 'act';
+      okBtn.textContent = opts.confirmText || 'Confirm';
+      function cancel(){ closeDialog(); resolve(false); }
+      function confirmIt(){ closeDialog(); resolve(true); }
+      cancelBtn.onclick = cancel;
+      okBtn.onclick = confirmIt;
+      dialogDismiss = cancel;
+      dialogButtonsEl.appendChild(cancelBtn);
+      dialogButtonsEl.appendChild(okBtn);
+      openDialog();
+      okBtn.focus();
+    });
+  }
+
+  function showPrompt(message, defaultValue, opts){
+    opts = opts || {};
+    return new Promise(function(resolve){
+      dialogTitleEl.textContent = opts.title || 'Name it';
+      dialogMessageEl.textContent = message;
+      dialogInputEl.style.display = 'block';
+      dialogInputEl.value = defaultValue || '';
+      dialogButtonsEl.innerHTML = '';
+      var skipBtn = document.createElement('button');
+      skipBtn.className = 'ghost';
+      skipBtn.textContent = opts.skipText || 'Skip';
+      var okBtn = document.createElement('button');
+      okBtn.className = 'act';
+      okBtn.textContent = opts.okText || 'OK';
+      function skip(){ closeDialog(); resolve(null); }
+      function submit(){ var v = dialogInputEl.value; closeDialog(); resolve(v); }
+      skipBtn.onclick = skip;
+      okBtn.onclick = submit;
+      dialogDismiss = skip;
+      dialogInputEl.onkeydown = function(e){ if(e.key==='Enter'){ e.preventDefault(); submit(); } };
+      dialogButtonsEl.appendChild(skipBtn);
+      dialogButtonsEl.appendChild(okBtn);
+      openDialog();
+      dialogInputEl.focus();
+      dialogInputEl.select();
+    });
+  }
 
   // Transfer modal
   var overlay = document.getElementById('overlay');
@@ -827,7 +938,7 @@
       }).catch(function(){ document.execCommand('copy'); });
     }catch(e){ document.execCommand('copy'); }
   });
-  document.getElementById('loadBtn').addEventListener('click', function(){
+  document.getElementById('loadBtn').addEventListener('click', async function(){
     var raw = document.getElementById('importText').value.trim();
     if(!raw) return;
     try{
@@ -838,7 +949,7 @@
       save(); renderAll();
       overlay.classList.remove('open');
     }catch(e){
-      alert('That code doesn\'t look valid — check it was copied in full.');
+      await showAlert('That code doesn\'t look valid — check it was copied in full.', {title:'Invalid data'});
     }
   });
 
