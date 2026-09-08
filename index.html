@@ -1,0 +1,605 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Space Bastards Scoreboard</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bangers&family=Anton&family=Rubik:wght@400;500;600;700&display=swap">
+<style>
+  :root{
+    --bg:#05060d;
+    --nebula-teal:#124b56;
+    --nebula-purple:#3c1f5e;
+    --nebula-red:#6a2130;
+    --ink:#f4f1e6;
+    --ink-dim:#9aa3ba;
+    --yellow:#ffce3a;
+    --yellow-dim:#8a6a1c;
+    --red:#e8432f;
+    --line: rgba(244,241,230,0.16);
+    --panel: rgba(8,10,20,0.92);
+    --panel-edge: rgba(244,241,230,0.14);
+    --field: rgba(244,241,230,0.06);
+    --good:#5fd08a;
+    --bad:#e8432f;
+    --pts:#5cc2e8;
+  }
+  *{box-sizing:border-box;}
+  html,body{height:100%;}
+  body{
+    margin:0;
+    min-height:100vh;
+    background:var(--bg);
+    color:var(--ink);
+    font-family:'Rubik',system-ui,sans-serif;
+    overflow-x:hidden;
+    position:relative;
+  }
+  #stars{position:fixed;inset:0;z-index:-2;display:block;width:100%;height:100%;}
+  .nebula{position:fixed;inset:0;z-index:-1;pointer-events:none;overflow:hidden;}
+  .nebula i{
+    position:absolute;border-radius:50%;filter:blur(60px);opacity:.55;
+    animation:drift 46s ease-in-out infinite;
+  }
+  .nebula i:nth-child(1){width:52vw;height:52vw;left:-12vw;top:-14vw;background:var(--nebula-teal);animation-duration:52s;}
+  .nebula i:nth-child(2){width:44vw;height:44vw;right:-10vw;top:6vh;background:var(--nebula-purple);animation-duration:61s;animation-delay:-8s;}
+  .nebula i:nth-child(3){width:48vw;height:48vw;left:18vw;bottom:-24vw;background:var(--nebula-red);animation-duration:70s;animation-delay:-20s;}
+  @keyframes drift{
+    0%,100%{transform:translate(0,0) scale(1);}
+    50%{transform:translate(4vw,-3vh) scale(1.12);}
+  }
+  @media (prefers-reduced-motion: reduce){
+    .nebula i{animation:none;}
+  }
+
+  .wrap{position:relative;z-index:1;max-width:1100px;margin:0 auto;padding:28px 20px 80px;}
+
+  .logo{text-align:center;margin-bottom:6px;}
+  .logo .line{
+    font-family:'Bangers',cursive;
+    font-size:clamp(38px,7.5vw,80px);
+    color:var(--yellow);
+    letter-spacing:2px;
+    line-height:0.98;
+    -webkit-text-stroke:2.5px #1a1200;
+    text-shadow:3px 3px 0 #1a1200, 6px 6px 0 rgba(0,0,0,.35);
+    transform:rotate(-1.4deg);
+    text-wrap:balance;
+  }
+  .logo .line:nth-child(2){transform:rotate(1deg);margin-top:-0.12em;}
+  .logo .sub{
+    font-family:'Anton',sans-serif;
+    color:var(--red);
+    letter-spacing:6px;
+    font-size:clamp(13px,2.4vw,22px);
+    -webkit-text-stroke:1px #200000;
+    text-shadow:2px 2px 0 #200000;
+    margin-top:6px;
+  }
+
+  /* Toolbar */
+  .toolbar{
+    display:flex;align-items:center;justify-content:center;gap:10px;flex-wrap:wrap;
+    margin:22px 0 6px;
+  }
+  .switchbtn{
+    display:flex;align-items:center;gap:9px;cursor:pointer;user-select:none;
+    background:var(--field);border:1px solid var(--panel-edge);border-radius:999px;
+    padding:7px 14px 7px 8px;font-family:'Anton',sans-serif;letter-spacing:1px;font-size:13px;
+    color:var(--ink-dim);
+  }
+  .switchbtn .track{
+    width:34px;height:19px;border-radius:999px;background:rgba(244,241,230,0.15);position:relative;transition:background .15s;
+    flex-shrink:0;
+  }
+  .switchbtn .knob{
+    position:absolute;top:2px;left:2px;width:15px;height:15px;border-radius:50%;background:var(--ink-dim);
+    transition:transform .15s, background .15s;
+  }
+  .switchbtn.on{color:var(--yellow);border-color:var(--yellow-dim);}
+  .switchbtn.on .track{background:rgba(255,206,58,0.35);}
+  .switchbtn.on .knob{transform:translateX(15px);background:var(--yellow);}
+
+  .toolbtn{
+    background:var(--field);border:1px solid var(--panel-edge);border-radius:999px;
+    padding:8px 16px;font-family:'Anton',sans-serif;letter-spacing:1px;font-size:13px;
+    color:var(--ink-dim);cursor:pointer;
+  }
+  .toolbtn:hover{color:var(--ink);border-color:var(--line);}
+  .toolbtn.active{color:var(--yellow);border-color:var(--yellow-dim);}
+
+  .divider{height:1px;background:linear-gradient(90deg,transparent,var(--line) 20%,var(--line) 80%,transparent);margin:18px 0 6px;}
+
+  .board{display:flex;flex-direction:column;margin-top:8px;}
+  .row{
+    position:relative;
+    display:flex;align-items:center;gap:18px;flex-wrap:wrap;
+    padding:16px 8px;border-top:1px solid var(--line);
+  }
+  .board .row:last-of-type{border-bottom:1px solid var(--line);}
+
+  .portrait{
+    width:56px;height:56px;border-radius:50%;flex-shrink:0;
+    background:radial-gradient(circle at 35% 30%, #2a3550, #10131f);
+    border:2px solid var(--line);
+    display:flex;align-items:center;justify-content:center;
+    font-family:'Anton',sans-serif;color:var(--ink-dim);font-size:17px;
+    overflow:hidden;position:relative;
+  }
+  .portrait img{width:100%;height:100%;object-fit:cover;display:block;}
+  .portrait.editable{cursor:pointer;border-color:var(--yellow-dim);}
+  .portrait.editable .plus{
+    position:absolute;inset:0;display:flex;align-items:center;justify-content:center;
+    background:rgba(0,0,0,.35);color:var(--yellow);font-size:20px;opacity:0;transition:opacity .15s;
+  }
+  .portrait.editable:hover .plus, .portrait.editable:active .plus{opacity:1;}
+  .portrait input{display:none;}
+
+  .rowmain{flex:1 1 180px;min-width:180px;display:flex;flex-direction:column;gap:9px;}
+
+  .name{
+    font-family:'Anton',sans-serif;
+    font-size:clamp(18px,2.8vw,27px);
+    letter-spacing:.5px;
+    text-transform:uppercase;
+  }
+  .nameinput{
+    background:transparent;border:none;border-bottom:1px solid var(--panel-edge);
+    color:var(--ink);font-family:'Anton',sans-serif;font-size:20px;letter-spacing:.5px;
+    text-transform:uppercase;padding:2px 2px 5px;max-width:280px;width:100%;
+  }
+  .nameinput:focus{outline:none;border-bottom-color:var(--yellow);}
+
+  .stats{display:flex;gap:26px;flex-wrap:wrap;}
+  .statcell{text-align:center;min-width:58px;}
+  .statcell label{display:block;font-family:'Anton',sans-serif;font-size:10px;letter-spacing:2px;color:var(--ink-dim);margin-bottom:5px;}
+
+  .tally{font-family:'Anton',sans-serif;font-size:clamp(16px,2.4vw,24px);letter-spacing:3px;}
+  .tally.kills{color:var(--good);}
+  .tally.deaths{color:var(--bad);}
+  .tally.pts{color:var(--pts);}
+  .tally.empty{color:var(--ink-dim);opacity:.5;letter-spacing:0;}
+
+  .stepper{display:flex;align-items:center;justify-content:center;gap:7px;}
+  .stepper button{
+    width:30px;height:30px;border-radius:7px;border:1px solid var(--panel-edge);
+    background:rgba(244,241,230,0.06);color:var(--ink);font-size:17px;cursor:pointer;line-height:1;
+  }
+  .stepper button:active{background:var(--yellow);color:#1a1200;}
+  .stepper .val{min-width:22px;font-family:'Anton',sans-serif;font-size:17px;}
+  .statcell.kills .val{color:var(--good);}
+  .statcell.deaths .val{color:var(--bad);}
+  .statcell.pts .val{color:var(--pts);}
+
+  .delbtn{
+    position:absolute;top:12px;right:6px;background:none;border:none;
+    color:var(--ink-dim);font-size:20px;cursor:pointer;line-height:1;padding:4px 6px;
+  }
+  .delbtn:hover{color:var(--bad);}
+
+  .addrow{
+    display:flex;gap:10px;align-items:center;margin-top:16px;
+    border:1px dashed var(--panel-edge);border-radius:12px;padding:14px;
+  }
+  .addrow input{
+    flex:1;min-width:0;background:var(--field);border:1px solid var(--panel-edge);border-radius:8px;
+    color:var(--ink);padding:10px 12px;font-family:'Rubik';font-size:14px;
+  }
+  .addrow button{
+    background:var(--yellow);color:#1a1200;border:none;border-radius:8px;
+    padding:10px 16px;font-weight:700;font-size:13px;cursor:pointer;white-space:nowrap;
+  }
+
+  .empty-state{text-align:center;color:var(--ink-dim);padding:50px 20px;font-size:15px;}
+
+  .campaign{
+    max-width:1100px;margin:26px auto 0;padding:0 20px;
+    display:none;
+  }
+  .campaign.open{display:block;}
+  .campaign-head{display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;}
+  .campaign-head h2{font-family:'Anton',sans-serif;letter-spacing:1px;font-size:16px;color:var(--ink-dim);margin:0;font-weight:400;}
+  .newgame{
+    background:var(--field);border:1px solid var(--panel-edge);border-radius:999px;
+    color:var(--ink);font-family:'Anton',sans-serif;letter-spacing:1px;font-size:13px;
+    padding:8px 16px;cursor:pointer;
+  }
+  .newgame:hover{border-color:var(--yellow);color:var(--yellow);}
+  .session{border:1px solid var(--panel-edge);border-radius:10px;padding:12px 14px;margin-bottom:10px;}
+  .session-head{display:flex;justify-content:space-between;font-family:'Anton',sans-serif;font-size:14px;color:var(--ink);margin-bottom:8px;}
+  .session-head span:last-child{color:var(--ink-dim);font-size:12px;font-family:'Rubik';}
+  .session-entry{display:flex;justify-content:space-between;font-size:13px;color:var(--ink-dim);padding:2px 0;}
+  .session-entry b{color:var(--ink);font-weight:500;}
+  .session-entry .sk{color:var(--good);}
+  .session-entry .sd{color:var(--bad);margin-left:8px;}
+  .note{font-size:12px;color:var(--ink-dim);text-align:center;margin-top:16px;line-height:1.6;}
+
+  /* Transfer modal */
+  .overlay{position:fixed;inset:0;background:rgba(0,0,0,.6);z-index:40;display:none;align-items:center;justify-content:center;padding:20px;}
+  .overlay.open{display:flex;}
+  .modal{
+    background:var(--panel);border:1px solid var(--panel-edge);border-radius:14px;
+    width:min(520px,100%);max-height:85vh;overflow-y:auto;padding:20px;
+  }
+  .modal h3{font-family:'Anton',sans-serif;letter-spacing:1px;font-size:18px;margin:0 0 4px;}
+  .modal p{font-size:13px;color:var(--ink-dim);line-height:1.5;margin:0 0 14px;}
+  .modal textarea{
+    width:100%;min-height:110px;background:var(--field);border:1px solid var(--panel-edge);
+    border-radius:8px;color:var(--ink);font-family:monospace;font-size:12px;padding:10px;resize:vertical;
+  }
+  .modal .row2{display:flex;gap:10px;margin-top:10px;}
+  .modal button.act{
+    background:var(--yellow);color:#1a1200;border:none;border-radius:8px;padding:9px 14px;
+    font-weight:700;font-size:13px;cursor:pointer;
+  }
+  .modal button.ghost{
+    background:none;border:1px solid var(--panel-edge);color:var(--ink);border-radius:8px;
+    padding:9px 14px;font-size:13px;cursor:pointer;
+  }
+  .modal hr{border:none;border-top:1px solid var(--panel-edge);margin:18px 0;}
+  .modal .close{float:right;background:none;border:none;color:var(--ink-dim);font-size:20px;cursor:pointer;}
+</style>
+</head>
+<body>
+
+<canvas id="stars"></canvas>
+<div class="nebula"><i></i><i></i><i></i></div>
+
+<div class="wrap">
+  <div class="logo">
+    <div class="line">SPACE</div>
+    <div class="line">BASTARDS!</div>
+    <div class="sub">FROM OUTER SPACE</div>
+  </div>
+
+  <div class="toolbar">
+    <div class="switchbtn" id="editToggle"><span class="track"><span class="knob"></span></span><span id="editLabel">Edit</span></div>
+    <button class="toolbtn" id="campaignBtn">Campaign</button>
+    <button class="toolbtn" id="transferBtn">Transfer Data</button>
+  </div>
+
+  <div class="divider"></div>
+
+  <div class="board" id="board"></div>
+  <div class="addrow" id="addRow" style="display:none;">
+    <input type="text" id="newName" placeholder="New bastard's name…" maxlength="40">
+    <button id="addBtn">Add Bastard</button>
+  </div>
+
+  <p class="note" id="editNote" style="display:none;">Tap a photo circle to add a mini pic. Points carry across games — kills &amp; deaths reset when you start a new game.</p>
+</div>
+
+<div class="campaign" id="campaign">
+  <div class="campaign-head">
+    <h2>Campaign History</h2>
+    <button class="newgame" id="newGameBtn">★ End Game &amp; Start New One</button>
+  </div>
+  <div id="historyList"></div>
+</div>
+
+<div class="overlay" id="overlay">
+  <div class="modal">
+    <button class="close" id="closeModal">✕</button>
+    <h3>Transfer Data</h3>
+    <p>This scoreboard is saved only on this device/browser. Copy the code below to back it up or move it to another device, then paste it there and load it.</p>
+    <div id="exportBox"></div>
+    <textarea id="exportText" readonly></textarea>
+    <div class="row2">
+      <button class="act" id="copyBtn">Copy to Clipboard</button>
+    </div>
+    <hr>
+    <p><strong>Load data on this device:</strong> paste a previously copied code below.</p>
+    <textarea id="importText" placeholder="Paste exported code here…"></textarea>
+    <div class="row2">
+      <button class="act" id="loadBtn">Load</button>
+      <button class="ghost" id="cancelImport">Cancel</button>
+    </div>
+  </div>
+</div>
+
+<script>
+(function(){
+  "use strict";
+
+  // ---------- Starfield background ----------
+  var canvas = document.getElementById('stars');
+  var ctx = canvas.getContext('2d');
+  var stars = [];
+  var reduceMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+  function sizeCanvas(){
+    canvas.width = window.innerWidth;
+    canvas.height = window.innerHeight;
+    var count = Math.floor((canvas.width*canvas.height)/9000);
+    stars = [];
+    for(var i=0;i<count;i++){
+      stars.push({
+        x: Math.random()*canvas.width,
+        y: Math.random()*canvas.height,
+        r: Math.random()*1.4+0.3,
+        p: Math.random()*Math.PI*2,
+        s: Math.random()*0.02+0.008
+      });
+    }
+  }
+  function drawStars(t){
+    ctx.clearRect(0,0,canvas.width,canvas.height);
+    for(var i=0;i<stars.length;i++){
+      var st = stars[i];
+      var tw = reduceMotion ? 0.8 : (0.5+0.5*Math.sin(st.p+t*st.s));
+      ctx.globalAlpha = 0.25+0.75*tw;
+      ctx.fillStyle = '#f4f1e6';
+      ctx.beginPath();
+      ctx.arc(st.x, st.y, st.r, 0, Math.PI*2);
+      ctx.fill();
+    }
+    ctx.globalAlpha = 1;
+    if(!reduceMotion) requestAnimationFrame(drawStars);
+  }
+  window.addEventListener('resize', sizeCanvas);
+  sizeCanvas();
+  requestAnimationFrame(drawStars);
+  if(reduceMotion) drawStars(0);
+
+  // ---------- State (localStorage only — fully standalone) ----------
+  var LOCAL_KEY = 'space-bastards-scoreboard-v1';
+  var state = {bastards: [], sessions: []};
+  var editMode = false;
+
+  var SEED = [
+    {name:'Boom Boom', kills:1, deaths:2, points:0},
+    {name:'Foxxy Brown', kills:1, deaths:1, points:0},
+    {name:'Robo-Bastard 9000', kills:0, deaths:1, points:1},
+    {name:'Undead Fred', kills:2, deaths:1, points:0},
+    {name:'P.M.', kills:0, deaths:3, points:0},
+    {name:'Gruff', kills:2, deaths:2, points:2}
+  ];
+
+  function uid(){ return 'b' + Date.now().toString(36) + Math.random().toString(36).slice(2,7); }
+
+  function load(){
+    try{
+      var raw = localStorage.getItem(LOCAL_KEY);
+      if(raw){
+        var parsed = JSON.parse(raw);
+        state.bastards = parsed.bastards || [];
+        state.sessions = parsed.sessions || [];
+        return;
+      }
+    }catch(e){}
+    // first run: seed with example roster
+    state.bastards = SEED.map(function(s){ return Object.assign({id: uid(), photo:null}, s); });
+    state.sessions = [];
+    save();
+  }
+  function save(){
+    try{ localStorage.setItem(LOCAL_KEY, JSON.stringify(state)); }catch(e){}
+  }
+
+  function escapeHtml(s){
+    var d = document.createElement('div');
+    d.textContent = s==null?'':s;
+    return d.innerHTML;
+  }
+  function initials(name){
+    return (name||'?').trim().split(/\s+/).slice(0,2).map(function(w){return w[0];}).join('').toUpperCase();
+  }
+  function tallyHtml(n, cls){
+    n = n||0;
+    if(n<=0) return '<span class="tally '+cls+' empty">–</span>';
+    if(n>10) return '<span class="tally '+cls+'">'+n+'</span>';
+    return '<span class="tally '+cls+'">'+ 'I'.repeat(n) +'</span>';
+  }
+
+  // ---------- Rendering ----------
+  function renderAll(){
+    renderBoard();
+    renderHistory();
+  }
+
+  function renderBoard(){
+    var board = document.getElementById('board');
+    var addRow = document.getElementById('addRow');
+    var editNote = document.getElementById('editNote');
+    addRow.style.display = editMode ? 'flex' : 'none';
+    editNote.style.display = editMode ? 'block' : 'none';
+
+    if(!state.bastards.length){
+      board.innerHTML = '<div class="empty-state">'+(editMode ? 'Add your first bastard below.' : 'No bastards yet. Switch on Edit to add your crew.')+'</div>';
+      return;
+    }
+
+    board.innerHTML = state.bastards.map(function(b){
+      var portrait;
+      var inner = b.photo ? '<img src="'+b.photo+'">' : initials(b.name);
+      if(editMode){
+        portrait = '<label class="portrait editable" data-id="'+b.id+'">'+inner+
+          (b.photo ? '' : '')+
+          '<span class="plus">'+(b.photo?'↻':'+')+'</span>'+
+          '<input type="file" accept="image/*" capture="environment" class="photoInput" data-id="'+b.id+'"></label>';
+      }else{
+        portrait = '<div class="portrait">'+inner+'</div>';
+      }
+
+      var nameHtml = editMode
+        ? '<input type="text" class="nameinput" data-id="'+b.id+'" value="'+escapeHtml(b.name)+'" maxlength="40">'
+        : '<div class="name">'+escapeHtml(b.name)+'</div>';
+
+      var statsHtml = '<div class="stats">'+
+        statCell('kills','KILLS',b.kills,b.id)+
+        statCell('deaths','DEATHS',b.deaths,b.id)+
+        statCell('pts','POINTS',b.points,b.id)+
+      '</div>';
+
+      var delBtn = editMode ? '<button class="delbtn" data-id="'+b.id+'" title="Remove">🗑</button>' : '';
+
+      return '<div class="row">'+portrait+'<div class="rowmain">'+nameHtml+statsHtml+'</div>'+delBtn+'</div>';
+    }).join('');
+
+    if(editMode){
+      board.querySelectorAll('.nameinput').forEach(function(inp){
+        inp.addEventListener('change', function(){
+          var b = state.bastards.find(function(x){return x.id===inp.getAttribute('data-id');});
+          if(b){ b.name = inp.value.trim() || 'Unnamed'; save(); renderBoard(); }
+        });
+      });
+      board.querySelectorAll('.photoInput').forEach(function(inp){
+        inp.addEventListener('change', function(e){
+          var file = e.target.files[0];
+          if(file) handlePhoto(file, inp.getAttribute('data-id'));
+        });
+      });
+      board.querySelectorAll('.delbtn').forEach(function(btn){
+        btn.addEventListener('click', function(){
+          if(confirm('Remove this bastard from the roster?')){
+            state.bastards = state.bastards.filter(function(x){return x.id!==btn.getAttribute('data-id');});
+            save(); renderBoard();
+          }
+        });
+      });
+      board.querySelectorAll('.stepper button').forEach(function(btn){
+        btn.addEventListener('click', function(){
+          var id = btn.getAttribute('data-id');
+          var field = btn.getAttribute('data-field');
+          var delta = parseInt(btn.getAttribute('data-delta'),10);
+          var b = state.bastards.find(function(x){return x.id===id;});
+          if(!b) return;
+          b[field] = Math.max(0, (b[field]||0)+delta);
+          save(); renderBoard();
+        });
+      });
+    }
+  }
+
+  function statCell(field, label, val, id){
+    if(!editMode){
+      return '<div class="statcell '+field+'"><label>'+label+'</label>'+tallyHtml(val, field)+'</div>';
+    }
+    return '<div class="statcell '+field+'"><label>'+label+'</label>'+
+      '<div class="stepper">'+
+        '<button data-id="'+id+'" data-field="'+field+'" data-delta="-1">–</button>'+
+        '<span class="val">'+(val||0)+'</span>'+
+        '<button data-id="'+id+'" data-field="'+field+'" data-delta="1">+</button>'+
+      '</div></div>';
+  }
+
+  function handlePhoto(file, id){
+    var img = new Image();
+    var reader = new FileReader();
+    reader.onload = function(e){
+      img.onload = function(){
+        var size = 240;
+        var c = document.createElement('canvas');
+        c.width = size; c.height = size;
+        var cx = c.getContext('2d');
+        var scale = Math.max(size/img.width, size/img.height);
+        var w = img.width*scale, h = img.height*scale;
+        cx.drawImage(img, (size-w)/2, (size-h)/2, w, h);
+        var dataUrl = c.toDataURL('image/jpeg', 0.72);
+        var b = state.bastards.find(function(x){return x.id===id;});
+        if(b){ b.photo = dataUrl; save(); renderBoard(); }
+      };
+      img.src = e.target.result;
+    };
+    reader.readAsDataURL(file);
+  }
+
+  function renderHistory(){
+    var el = document.getElementById('historyList');
+    if(!state.sessions.length){
+      el.innerHTML = '<p class="note">No games logged yet. Play a round, then tap "End Game" to save it here.</p>';
+      return;
+    }
+    var sorted = state.sessions.slice().sort(function(a,b){ return (b.endedAt||0)-(a.endedAt||0); });
+    el.innerHTML = sorted.map(function(s){
+      var date = s.endedAt ? new Date(s.endedAt).toLocaleDateString(undefined,{month:'short',day:'numeric',year:'numeric'}) : '';
+      var entries = (s.entries||[]).map(function(en){
+        return '<div class="session-entry"><b>'+escapeHtml(en.name)+'</b><span><span class="sk">'+(en.kills||0)+'K</span><span class="sd">'+(en.deaths||0)+'D</span></span></div>';
+      }).join('');
+      return '<div class="session"><div class="session-head"><span>'+escapeHtml(s.label||'Game')+'</span><span>'+date+'</span></div>'+entries+'</div>';
+    }).join('');
+  }
+
+  // ---------- Actions ----------
+  function addBastard(name){
+    state.bastards.push({id: uid(), name: name, kills:0, deaths:0, points:0, photo:null});
+    save(); renderBoard();
+  }
+  function endGame(){
+    if(!state.bastards.length){ alert('Add some bastards first.'); return; }
+    var label = prompt('Name this game (optional):', 'Game '+(state.sessions.length+1));
+    if(label===null) return;
+    var entries = state.bastards.map(function(b){ return {name:b.name, kills:b.kills||0, deaths:b.deaths||0}; });
+    state.sessions.push({label: label || ('Game '+(state.sessions.length+1)), endedAt: Date.now(), entries: entries});
+    state.bastards.forEach(function(b){ b.kills=0; b.deaths=0; });
+    save(); renderAll();
+  }
+
+  // ---------- Wire up controls ----------
+  document.getElementById('editToggle').addEventListener('click', function(){
+    editMode = !editMode;
+    this.classList.toggle('on', editMode);
+    document.getElementById('editLabel').textContent = editMode ? 'Editing' : 'Edit';
+    renderBoard();
+  });
+
+  document.getElementById('addBtn').addEventListener('click', function(){
+    var input = document.getElementById('newName');
+    var name = input.value.trim();
+    if(!name) return;
+    addBastard(name);
+    input.value = '';
+    input.focus();
+  });
+  document.getElementById('newName').addEventListener('keydown', function(e){
+    if(e.key==='Enter') document.getElementById('addBtn').click();
+  });
+
+  var campaign = document.getElementById('campaign');
+  document.getElementById('campaignBtn').addEventListener('click', function(){
+    campaign.classList.toggle('open');
+    this.classList.toggle('active');
+  });
+  document.getElementById('newGameBtn').addEventListener('click', endGame);
+
+  // Transfer modal
+  var overlay = document.getElementById('overlay');
+  document.getElementById('transferBtn').addEventListener('click', function(){
+    document.getElementById('exportText').value = JSON.stringify(state);
+    document.getElementById('importText').value = '';
+    overlay.classList.add('open');
+  });
+  document.getElementById('closeModal').addEventListener('click', function(){ overlay.classList.remove('open'); });
+  document.getElementById('cancelImport').addEventListener('click', function(){ overlay.classList.remove('open'); });
+  overlay.addEventListener('click', function(e){ if(e.target===overlay) overlay.classList.remove('open'); });
+  document.getElementById('copyBtn').addEventListener('click', function(){
+    var ta = document.getElementById('exportText');
+    ta.select();
+    try{
+      navigator.clipboard.writeText(ta.value).then(function(){
+        document.getElementById('copyBtn').textContent = 'Copied!';
+        setTimeout(function(){ document.getElementById('copyBtn').textContent = 'Copy to Clipboard'; }, 1500);
+      }).catch(function(){ document.execCommand('copy'); });
+    }catch(e){ document.execCommand('copy'); }
+  });
+  document.getElementById('loadBtn').addEventListener('click', function(){
+    var raw = document.getElementById('importText').value.trim();
+    if(!raw) return;
+    try{
+      var parsed = JSON.parse(raw);
+      if(!parsed || !Array.isArray(parsed.bastards)) throw new Error('bad shape');
+      state.bastards = parsed.bastards;
+      state.sessions = Array.isArray(parsed.sessions) ? parsed.sessions : [];
+      save(); renderAll();
+      overlay.classList.remove('open');
+    }catch(e){
+      alert('That code doesn\'t look valid — check it was copied in full.');
+    }
+  });
+
+  // ---------- Init ----------
+  load();
+  renderAll();
+})();
+</script>
+</body>
+</html>
