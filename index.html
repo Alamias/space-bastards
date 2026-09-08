@@ -115,8 +115,49 @@
     position:relative;
     display:flex;align-items:center;gap:22px;flex-wrap:wrap;
     padding:20px 10px;border-top:1px solid var(--line);
+    border-radius:12px;
   }
   .board .row:last-of-type{border-bottom:1px solid var(--line);}
+
+  .row.winner{box-shadow:inset 0 0 0 1px rgba(255,206,58,.45);background:linear-gradient(90deg, rgba(255,206,58,.09), transparent 65%);animation:winnerglow 2.2s ease-in-out infinite;}
+  @media (prefers-reduced-motion: reduce){ .row.winner{animation:none;box-shadow:inset 0 0 0 2px rgba(255,206,58,.6);} }
+  @keyframes winnerglow{0%,100%{box-shadow:inset 0 0 0 1px rgba(255,206,58,.35);}50%{box-shadow:inset 0 0 0 2px rgba(255,206,58,.85);}}
+  .winner-badge{
+    display:inline-block;margin-left:9px;font-family:'Anton',sans-serif;font-size:11px;letter-spacing:1px;
+    color:#1a1200;background:var(--yellow);padding:3px 8px;border-radius:999px;vertical-align:middle;
+    white-space:nowrap;
+  }
+
+  /* Fanfare celebration */
+  .fanfare-overlay{
+    position:fixed;inset:0;z-index:60;display:flex;align-items:center;justify-content:center;
+    pointer-events:none;
+  }
+  .fanfare-card{
+    text-align:center;opacity:0;transform:scale(.5) rotate(-4deg);
+    animation:fanfarein .5s cubic-bezier(.34,1.56,.64,1) forwards, fanfareout .5s ease-in forwards 2.6s;
+  }
+  @media (prefers-reduced-motion: reduce){
+    .fanfare-card{animation:fanfarein .3s ease forwards, fanfareout .3s ease forwards 2.6s;}
+  }
+  @keyframes fanfarein{to{opacity:1;transform:scale(1) rotate(-2deg);}}
+  @keyframes fanfareout{to{opacity:0;transform:scale(.85) rotate(2deg);}}
+  .fanfare-card .trophy{font-size:56px;margin-bottom:6px;}
+  .fanfare-card .win-name{
+    font-family:'Bangers',cursive;color:var(--yellow);font-size:clamp(40px,8vw,84px);
+    letter-spacing:2px;-webkit-text-stroke:2.5px #1a1200;
+    text-shadow:3px 3px 0 #1a1200, 6px 6px 0 rgba(0,0,0,.4);
+  }
+  .fanfare-card .win-sub{
+    font-family:'Anton',sans-serif;color:var(--red);letter-spacing:4px;
+    font-size:clamp(14px,2.4vw,22px);-webkit-text-stroke:1px #200000;
+    text-shadow:2px 2px 0 #200000;margin-top:8px;
+  }
+  .confetti-piece{
+    position:fixed;top:-24px;left:0;width:9px;height:15px;opacity:.9;z-index:59;
+    border-radius:2px;animation-name:confettiFall;animation-timing-function:ease-in;animation-fill-mode:forwards;
+  }
+  @keyframes confettiFall{to{transform:translateY(105vh) translateX(var(--drift)) rotate(var(--spin));opacity:0;}}
 
   .portrait{
     width:56px;height:56px;border-radius:50%;flex-shrink:0;
@@ -345,6 +386,7 @@
 
   // ---------- State (localStorage only — fully standalone) ----------
   var LOCAL_KEY = 'space-bastards-scoreboard-v1';
+  var WIN_THRESHOLD = 3;
   var state = {bastards: [], sessions: []};
   var editMode = true;
 
@@ -427,6 +469,9 @@
         ? '<input type="text" class="nameinput" data-id="'+b.id+'" value="'+escapeHtml(b.name)+'" maxlength="40">'
         : '<div class="name">'+escapeHtml(b.name)+'</div>';
 
+      var isWinner = (b.kills||0) >= WIN_THRESHOLD;
+      var badgeHtml = isWinner ? '<span class="winner-badge">🏆 Winner</span>' : '';
+
       var statsHtml = '<div class="stats">'+
         statCell('kills','KILLS',b.kills,b.id)+
         statCell('deaths','DEATHS',b.deaths,b.id)+
@@ -435,7 +480,7 @@
 
       var delBtn = editMode ? '<button class="delbtn" data-id="'+b.id+'" title="Remove">🗑</button>' : '';
 
-      return '<div class="row">'+portrait+'<div class="rowmain">'+nameHtml+statsHtml+'</div>'+delBtn+'</div>';
+      return '<div class="row'+(isWinner?' winner':'')+'">'+portrait+'<div class="rowmain">'+nameHtml+badgeHtml+statsHtml+'</div>'+delBtn+'</div>';
     }).join('');
 
     if(editMode){
@@ -493,9 +538,55 @@
   function bumpStat(id, field, delta){
     var b = state.bastards.find(function(x){return x.id===id;});
     if(!b) return;
-    b[field] = Math.max(0, (b[field]||0)+delta);
+    var before = b[field]||0;
+    var after = Math.max(0, before+delta);
+    b[field] = after;
     save();
     renderBoard();
+    if(field==='kills' && before<WIN_THRESHOLD && after>=WIN_THRESHOLD){
+      celebrateWinner(b);
+    }
+  }
+
+  // ---------- Winner fanfare ----------
+  var CONFETTI_COLORS = ['#ffce3a','#e8432f','#5fd08a','#5cc2e8','#f4f1e6','#3c1f5e'];
+
+  function celebrateWinner(b){
+    var existingOverlay = document.querySelector('.fanfare-overlay');
+    if(existingOverlay) existingOverlay.remove();
+    var existingConfetti = document.getElementById('confettiLayer');
+    if(existingConfetti) existingConfetti.remove();
+
+    var overlay = document.createElement('div');
+    overlay.className = 'fanfare-overlay';
+    overlay.innerHTML = '<div class="fanfare-card">'+
+      '<div class="trophy">🏆</div>'+
+      '<div class="win-name">'+escapeHtml(b.name)+'</div>'+
+      '<div class="win-sub">'+WIN_THRESHOLD+' KILLS — WINNER!</div>'+
+    '</div>';
+    document.body.appendChild(overlay);
+    setTimeout(function(){ overlay.remove(); }, 3200);
+
+    if(!reduceMotion) spawnConfetti();
+  }
+
+  function spawnConfetti(){
+    var layer = document.createElement('div');
+    layer.id = 'confettiLayer';
+    var count = 90;
+    for(var i=0;i<count;i++){
+      var piece = document.createElement('div');
+      piece.className = 'confetti-piece';
+      piece.style.left = (Math.random()*100)+'vw';
+      piece.style.background = CONFETTI_COLORS[i % CONFETTI_COLORS.length];
+      piece.style.setProperty('--drift', (Math.random()*160-80)+'px');
+      piece.style.setProperty('--spin', (Math.random()*720-360)+'deg');
+      piece.style.animationDuration = (2+Math.random()*1.4)+'s';
+      piece.style.animationDelay = (Math.random()*0.4)+'s';
+      layer.appendChild(piece);
+    }
+    document.body.appendChild(layer);
+    setTimeout(function(){ layer.remove(); }, 4000);
   }
 
   function statCell(field, label, val, id){
