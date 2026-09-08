@@ -236,7 +236,9 @@
   .empty-state{text-align:center;color:var(--ink-dim);padding:50px 20px;font-size:15px;}
 
   .campaign{
-    max-width:1100px;margin:26px auto 0;padding:0 20px;
+    margin-top:18px;
+    border:1px solid var(--panel-edge);border-radius:14px;background:var(--field);
+    padding:18px;
     display:none;
   }
   .campaign.open{display:block;}
@@ -301,6 +303,14 @@
     <button class="toolbtn" id="transferBtn">Transfer Data</button>
   </div>
 
+  <div class="campaign" id="campaign">
+    <div class="campaign-head">
+      <h2>Campaign History</h2>
+      <button class="newgame" id="newGameBtn">★ End Game &amp; Start New One</button>
+    </div>
+    <div id="historyList"></div>
+  </div>
+
   <div class="divider"></div>
   <p class="note">Tap a number to add one · press and hold (or right-click) to subtract one.</p>
 
@@ -311,14 +321,6 @@
   </div>
 
   <p class="note" id="editNote" style="display:none;">Tap a photo circle to add a mini pic. Points carry across games — kills &amp; deaths reset when you start a new game.</p>
-</div>
-
-<div class="campaign" id="campaign">
-  <div class="campaign-head">
-    <h2>Campaign History</h2>
-    <button class="newgame" id="newGameBtn">★ End Game &amp; Start New One</button>
-  </div>
-  <div id="historyList"></div>
 </div>
 
 <div class="overlay" id="overlay">
