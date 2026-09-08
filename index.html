@@ -260,6 +260,10 @@
   }
   .statcell:hover{background:rgba(244,241,230,0.05);}
   .statcell:active{transform:scale(.93);background:rgba(244,241,230,0.09);}
+  .statcell.locked, .statcell:disabled{
+    cursor:not-allowed;opacity:.4;background:none;
+  }
+  .statcell.locked:hover, .statcell.locked:active{background:none;transform:none;}
   .statcell label{display:block;font-family:'Anton',sans-serif;font-size:10px;letter-spacing:2px;color:var(--ink-dim);margin-bottom:5px;pointer-events:none;}
 
   .tally{font-family:'Anton',sans-serif;font-size:clamp(16px,2.4vw,24px);letter-spacing:3px;}
@@ -288,6 +292,12 @@
   }
 
   .empty-state{text-align:center;color:var(--ink-dim);padding:50px 20px;font-size:15px;}
+
+  .gameover-banner{
+    text-align:center;font-family:'Anton',sans-serif;letter-spacing:.5px;
+    color:var(--yellow);background:rgba(255,206,58,.08);border:1px solid var(--yellow-dim);
+    border-radius:10px;padding:12px 16px;margin-bottom:4px;font-size:14px;text-transform:none;
+  }
 
   .campaign{
     margin-top:18px;
@@ -503,7 +513,13 @@
       return;
     }
 
-    board.innerHTML = state.bastards.map(function(b){
+    var hasWinner = state.bastards.some(function(x){ return (x.kills||0) >= WIN_THRESHOLD; });
+    var winnerName = hasWinner ? state.bastards.find(function(x){ return (x.kills||0) >= WIN_THRESHOLD; }).name : '';
+    var gameOverBanner = hasWinner
+      ? '<div class="gameover-banner">🏆 '+escapeHtml(winnerName)+' won this round — scoring is locked. Open Campaign to end the game and start a new one.</div>'
+      : '';
+
+    board.innerHTML = gameOverBanner + state.bastards.map(function(b){
       var portrait;
       var inner = b.photo ? '<img src="'+b.photo+'">' : initials(b.name);
       if(editMode){
@@ -521,12 +537,13 @@
 
       var isWinner = (b.kills||0) >= WIN_THRESHOLD;
       var isDead = (b.deaths||0) >= DEATH_THRESHOLD;
+      var locked = hasWinner || isDead;
       var badgeHtml = isWinner ? '<span class="winner-badge">🏆 Winner</span>' : '';
 
       var statsHtml = '<div class="stats">'+
-        statCell('kills','KILLS',b.kills,b.id)+
-        statCell('deaths','DEATHS',b.deaths,b.id)+
-        statCell('pts','POINTS',b.points,b.id)+
+        statCell('kills','KILLS',b.kills,b.id,locked)+
+        statCell('deaths','DEATHS',b.deaths,b.id,locked)+
+        statCell('pts','POINTS',b.points,b.id,locked)+
       '</div>';
 
       var delBtn = editMode ? '<button class="delbtn" data-id="'+b.id+'" title="Remove">🗑</button>' : '';
@@ -560,7 +577,8 @@
     }
 
     // Stat cells are always tappable — no need to be in Edit mode to score a game.
-    board.querySelectorAll('.statcell').forEach(function(cell){
+    // Locked cells (a bastard is dead, or someone has already won) get no listeners at all.
+    board.querySelectorAll('.statcell:not([data-locked="1"])').forEach(function(cell){
       var id = cell.getAttribute('data-id');
       var field = cell.getAttribute('data-field');
       var pressTimer = null;
@@ -674,8 +692,8 @@
     }
   }
 
-  function statCell(field, label, val, id){
-    return '<button type="button" class="statcell '+field+'" data-id="'+id+'" data-field="'+field+'">'+
+  function statCell(field, label, val, id, locked){
+    return '<button type="button" class="statcell '+field+(locked?' locked':'')+'" data-id="'+id+'" data-field="'+field+'" data-locked="'+(locked?'1':'0')+'"'+(locked?' disabled':'')+'>'+
       '<label>'+label+'</label>'+tallyHtml(val, field)+
     '</button>';
   }
